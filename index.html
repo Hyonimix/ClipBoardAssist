@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="jp">
+
+<head>
+    <meta charset="UTF-8">
+    <title>CBAssist</title>
+    <link rel="icon"
+        href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect x='15' y='5' width='70' height='90' rx='5' ry='5' fill='%238B5D33' stroke='%23663300' stroke-width='2'/%3E%3Crect x='22' y='12' width='56' height='75' fill='%23FFFFFF' stroke='%23000000' stroke-width='1'/%3E%3Ctext x='50' y='63' font-size='50' text-anchor='middle' fill='%23000000'%3E%E5%A7%9C%3C/text%3E%3C/svg%3E">
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@10"></script>
+    <style>
+        body {
+            background-color: #2C2C2C;
+            color: white;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        .post-it {
+            width: 80%;
+            margin: 10px auto;
+            border-radius: 8px;
+            background-color: #424242;
+            color: #ffffff;
+            padding: 10px;
+            position: relative;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            max-height: 100%;
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            white-space: normal;
+            word-break: break-all;
+        }
+
+        .post-it .close {
+            position: absolute;
+            top: 0;
+            right: 0;
+            cursor: pointer;
+            color: #ffffff;
+            display: none;
+        }
+
+        .post-it:hover .close {
+            display: block;
+        }
+
+        #post-it-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .toast {
+            background-color: #424242 !important;
+            color: white !important;
+            border-radius: 8px !important;
+            display: inline-block;
+            text-align: center;
+        }
+
+        #toast-container {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            border-radius: 8px;
+            transform: translateX(-50%);
+            z-index: 1050;
+        }
+
+        #byte-counter {
+            font-size: 14px;
+            color: #ffffff;
+        }
+
+        .btn {
+            margin: 5px;
+            width: 23%;
+            height: 3rem;
+        }
+
+        #delete-btn {
+            color: white;
+        }
+
+        #delete-btn:hover {
+            color: white;
+        }
+
+        #text-input {
+            background-color: #424242;
+            color: #ffffff;
+            height: auto;
+            resize: none;
+            overflow-y: hidden;
+        }
+
+        .text-center {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: nowrap;
+        }
+
+        .cbassist-header {
+            background-color: #333;
+            color: #ffffff;
+            padding: 5px 0;
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+
+        @keyframes fadeIn {
+            0% {
+                opacity: 0;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out 1 both;
+            transition: opacity 2s;
+            opacity: 0;
+        }
+
+        .fade-in.visible {
+            opacity: 1;
+        }
+
+        .container {
+            animation: fadeIn 0.5s ease-in-out 1 both;
+        }
+
+        footer {
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 5%;
+            width: 50%;
+            margin: auto;
+            text-align: center;
+        }
+
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+            }
+
+            to {
+                opacity: 0;
+            }
+        }
+
+        .fade-out {
+            animation: fadeOut 0.5s ease-in-out forwards;
+        }
+
+        @media (max-width: 1290px) {
+            .container {
+                width: 90%;
+                margin: 0 auto;
+            }
+
+            .btn {
+                width: 48%;
+                font-size: 14px;
+            }
+
+            .cbassist-header {
+                font-size: 20px;
+                padding: 10px 0;
+            }
+
+            #text-input {
+                height: auto;
+            }
+
+            footer {
+                font-size: 12px;
+                bottom: 2%;
+                z-index: -1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="cbassist-header fade-in">CBAssist</div>
+
+    <div class="container mt-3">
+        <textarea id="text-input" class="form-control" rows="4" style="resize: none; width: 100%;"></textarea>
+        <div class="d-flex justify-content-between align-items-center">
+            <div class="custom-control custom-switch">
+                <input type="checkbox" class="custom-control-input" id="toggle-limit">
+                <!-- 1.2.20 Unlimited Mode ⇒ Alternate Mode -->
+                <label class="custom-control-label" for="toggle-limit">Alternate Mode</label>
+            </div>
+            <div id="byte-counter" style="font-size: 14px;">0/144</div>
+        </div>
+        <div class="text-center">
+            <button id="delete-btn" class="btn btn-primary mt-2">クリア</button>
+            <button id="save-btn" class="btn btn-success mt-2">保存</button>
+            <button id="delete-all-btn" class="btn btn-danger mt-2">全て削除</button>
+        </div>
+    </div>
+    <div id="post-it-container"></div>
+    <div id="toast-container"></div>
+    <footer class="container mt-4 text-muted">
+        D5 Kan<br>
+        github.com/Hyonimix
+    </footer>
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            // 유저에이전트를 이용하여 모바일 환경인지 판단
+            const isMobile = /iPhone/i.test(navigator.userAgent);
+
+            // 모바일 환경이 아닌 경우 PC 환경으로 판단
+            const isPC = !isMobile;
+
+            // 모바일 환경일 때 스타일 변경
+            if (isMobile) {
+                //$('body').css('padding', '0 10px');
+                $('.container').css('width', '90%');
+                $('.btn').css({
+                    'width': '48%',
+                    'font-size': '14px'
+                });
+                $('.cbassist-header').css({
+                    'font-size': '20px',
+                    'padding': '10px 0'
+                });
+                $('#text-input').css('height', '80px');
+                $('footer').css({
+                    'font-size': '12px',
+                    'bottom': '2%'
+                });
+            } else {
+                // PC 환경일 때 텍스트박스에 포커스 주기
+                $('#text-input').focus();
+
+                // PC 환경일 때 헤더
+                const headerOptions = [
+                    'CBAssist : ClipBoardAssist',
+                    'CBAssist : ChiBiAssist',
+                    'CBAssist : ChatBoxAssist'
+                ];
+                const randomHeader = headerOptions[Math.floor(Math.random() * headerOptions.length)];
+
+                $('.cbassist-header').text(randomHeader);
+
+            }
+
+            // 헤더 페이드인
+            $('.cbassist-header').addClass('visible');
+
+            // 로컬스토리지에서 포스트잇 데이터 불러오기
+            let savedPostIts = localStorage.getItem('postIts');
+            savedPostIts = savedPostIts ? JSON.parse(savedPostIts) : [];
+
+            // 불러온 포스트잇 데이터를 역순으로 정렬
+            savedPostIts.reverse();
+
+            savedPostIts.forEach(function (postItData) {
+                const postIt = $('<div class="post-it fade-in"></div>');
+
+                if (postItData.htmlContent) {
+                    // "/html/"을 제거하고 "\n"을 "<br>"로 변환
+                    postIt.html(postItData.text.replace('/html/', '').replace(/(?:\r\n|\r|\n)/g, '<br>'));
+                } else {
+                    postIt.text(postItData.text);
+                }
+
+                postIt.css('background-color', postItData.color);
+                postIt.data('id', postItData.id);
+                postIt.data('htmlContent', postItData.htmlContent);
+                postIt.data('originalText', postItData.text); // 원본 텍스트 저장
+
+                const closeButton = $('<span class="close">&times;</span>');
+                closeButton.click(function (event) {
+                    event.stopPropagation();
+                    const postItId = $(this).parent().data('id');
+                    $(this).parent().remove();
+
+                    let savedPostIts = localStorage.getItem('postIts');
+                    if (savedPostIts) {
+                        savedPostIts = JSON.parse(savedPostIts);
+                        savedPostIts = savedPostIts.filter(postIt => postIt.id !== postItId);
+                        localStorage.setItem('postIts', JSON.stringify(savedPostIts));
+                    }
+                });
+
+                postIt.append(closeButton);
+                postIt.click(function () {
+                    const isHtmlContent = $(this).data('htmlContent');
+                    if (isHtmlContent) {
+                        copyToClipboard($(this).data('originalText'));
+                    } else {
+                        copyToClipboard($(this).clone().children().remove().end().text());
+                    }
+                });
+
+                // 불러오기가 완료된 포스트잇 화면에 붙이기
+                $('#post-it-container').append(postIt);
+            });
+
+            // 로컬스토리지에서 토글 버튼 상태 불러오기
+            const unlimitedMode = localStorage.getItem('unlimitedMode');
+            if (unlimitedMode === 'true') {
+                $('#toggle-limit').prop('checked', true);
+                $('#byte-counter').hide();
+            } else {
+                $('#toggle-limit').prop('checked', false);
+                $('#byte-counter').show();
+            }
+
+            // 토글 버튼 상태 변경
+            $('#toggle-limit').change(function () {
+                const isChecked = $(this).is(':checked');
+                localStorage.setItem('unlimitedMode', isChecked);
+                const $textInput = $('#text-input');
+                let text = $textInput.val();
+
+                if (isChecked) {
+                    $('#byte-counter').hide();
+                    text = text.replace(/[\r\n]/g, ''); // 개행 제거
+                } else {
+                    $('#byte-counter').show();
+                    text = text.replace(/[\r\n]/g, ''); // 개행 제거
+                    if (text.length > 144) {
+                        text = text.substring(0, 144); // 144글자 초과하면 제거
+                    }
+                    $textInput.val(text);
+
+                    const charLength = text.length;
+                    $('#byte-counter').text(`${charLength}/144`);
+
+                    // 추가 부분: 토글 스위치가 OFF일 때 텍스트박스 높이 다시 조정
+                    $textInput[0].style.height = 'auto';
+                    if ($textInput[0].scrollHeight > $textInput[0].clientHeight) {
+                        $textInput[0].style.height = $textInput[0].scrollHeight + 'px';
+                    }
+                }
+
+                $textInput.trigger('input');
+            });
+
+            // 창 크기가 변경될 때 텍스트박스 높이 재조정
+            $(window).resize(function () {
+                const $textInput = $('#text-input');
+                $textInput[0].style.height = 'auto';
+                if ($textInput[0].scrollHeight > $textInput[0].clientHeight) {
+                    $textInput[0].style.height = $textInput[0].scrollHeight + 'px';
+                }
+            });
+
+            // 바이트 계산
+            function getByteLength(str) {
+                return new Blob([str]).size;
+            }
+
+            // 붙여넣기 이벤트 핸들러
+            $('#text-input').on('paste', function (event) {
+                pastedbyUser = true;
+                const textInput = $(this);
+                const clipboardData = event.originalEvent.clipboardData || window.clipboardData;
+                let pastedData = clipboardData.getData('Text');
+
+                // 강제개행 제거
+                pastedData = pastedData.replace(/[\r\n]/g, '');
+
+                // 붙여넣기 후의 텍스트 길이 계산
+                const newText = textInput.val() + pastedData;
+
+                // 전체 선택 후 붙여넣기 시 기존 내용 대체
+                if (window.getSelection().toString() === textInput.val()) {
+                    textInput.val(pastedData);
+                    textInput[0].setSelectionRange(textInput[0].value.length, textInput[0].value.length);
+                } else {
+                    textInput.val(newText);
+                }
+
+                if (newText.length > 144) {
+                    // 대체 모드 활성화
+                    $('#toggle-limit').prop('checked', true);
+                    $('#byte-counter').hide();
+                    localStorage.setItem('unlimitedMode', true);
+                }
+
+                // 붙여넣기 후 텍스트 업데이트
+                setTimeout(function () {
+                    textInput.trigger('input');
+                    lastCopiedText = pastedData; // 붙여넣기된 텍스트로 업데이트
+                }, 0);
+
+                // 붙여넣기 이벤트의 기본 동작 방지
+                event.preventDefault();
+            });
+
+            // 자동복사 기능 타이머
+            let typingTimer;
+            const defaultTypingInterval = isMobile ? 2500 : 500; // 기본 타이머 시간(ms)
+
+            let isComposing = false;
+
+            // 붙여넣기 여부를 추적하기 위한 변수 추가
+            let pastedbyUser = false;
+
+            // 입력 이벤트 핸들러
+            $('#text-input').on('input', function () {
+                if (isComposing) return;
+
+                const $textInput = $(this);
+                let text = $textInput.val();
+                text = text.replace(/[\r\n]/g, ''); // 개행 제거
+
+                if (!$('#toggle-limit').is(':checked') && text.length > 144) { // 144글자 초과하면 제거
+                    text = text.substring(0, 144);
+                    $textInput.val(text);
+                }
+
+                if ($('#toggle-limit').is(':checked')) {
+                    $textInput[0].style.height = 'auto';
+                    if ($textInput[0].scrollHeight > $textInput[0].clientHeight) {
+                        $textInput[0].style.height = $textInput[0].scrollHeight + 'px';
+                    }
+                }
+
+                const charLength = text.length;
+                if (!$('#toggle-limit').is(':checked')) {
+                    $('#byte-counter').text(`${charLength}/144`);
+                }
+
+                if (!pastedbyUser) {
+                    clearTimeout(typingTimer);
+
+                    // 자동 복사 타이머 설정
+                    typingTimer = setTimeout(function () {
+                        if (!isComposing && text) { // 텍스트가 비어있지 않은 경우에만 복사
+                            copyToClipboard(text);
+                            $textInput.focus(); // 포커스 유지
+                        }
+                    }, defaultTypingInterval);
+                } else {
+                    pastedbyUser = false; // 붙여넣기 여부 초기화
+                }
+            });
+
+
+            // 일본어 입력 조합 상태 추적
+            $('#text-input').on('compositionstart', function () {
+                isComposing = true;
+            });
+
+            $('#text-input').on('compositionend', function () {
+                isComposing = false;
+                clearTimeout(typingTimer); // 기존 타이머 취소
+                $(this).trigger('input'); // 입력 이벤트 트리거
+            });
+
+            // 엔터 키를 누를 때 저장 버튼 클릭 이벤트 트리거
+            $('#text-input').keydown(function (event) {
+                if (event.which === 13) {
+                    event.preventDefault(); // 개행 방지
+                    $('#save-btn').click();
+                }
+            });
+
+            // 복사 기능
+            let lastCopiedText = ''; // 마지막으로 복사한 텍스트를 저장할 변수
+
+            function copyToClipboard(text) {
+                if (text && (text !== lastCopiedText || postItClicked)) {
+                    const tempInput = $('<input>');
+                    $('body').append(tempInput);
+                    tempInput.val(text).select();
+                    document.execCommand('copy');
+                    tempInput.remove();
+                    showToast("テキストがコピーされました");
+                    lastCopiedText = text; // 마지막으로 복사한 텍스트 업데이트
+                    postItClicked = false; // 클릭 플래그 초기화
+                }
+            }
+
+            // 토스트 알림
+            function showToast(message) {
+                const toastHTML = `
+                    <div class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-delay="2000" style="background-color: #424242; color: white; border-radius: 8px;">
+                        <div class="toast-body">
+                            ${message}
+                        </div>
+                    </div>`;
+                const $toast = $(toastHTML);
+                $('#toast-container').append($toast);
+
+                // 토스트가 보일 때 푸터 숨기기
+                $toast.on('shown.bs.toast', function () {
+                    $('footer').addClass('fade-out');
+                });
+
+                // 토스트가 숨겨질 때 푸터 다시 보이기
+                $toast.on('hidden.bs.toast', function () {
+                    $(this).remove();
+                    if ($('#toast-container .toast').length === 0) {
+                        $('footer').removeClass('fade-out');
+                    }
+                });
+
+                // 토스트 알림 표시
+                $toast.toast('show');
+            }
+
+            // 비우기 버튼 클릭
+            $('#delete-btn').click(function () {
+                // 자동복사 캔슬
+                clearTimeout(typingTimer);
+                lastCopiedText = '';
+                let pastedbyUser = false;
+
+                // 텍스트박스 비우기
+                $('#text-input').val('');
+                const text = $('#text-input').val();
+                const byteCount = new Blob([text]).size;
+                lastCopiedText = '';
+                $('#text-input')[0].style.height = 'auto';
+                $('#byte-counter').text(byteCount + '/144');
+                if (isPC) {
+                    $('#text-input').focus(); // PC 환경일 때 포커스 유지
+                }
+            });
+
+            // 포스트잇 색상 목록
+            const postItColors = [
+                '#B71C1C', '#880E4F', '#4A148C', '#311B92', '#1A237E',
+                '#0D47A1', '#01579B', '#006064', '#004D40', '#1B5E20',
+                '#33691E', '#827717', '#F57F17', '#FF6F00', '#E65100',
+                '#BF360C', '#3E2723', '#212121', '#263238'
+            ];
+
+            // 랜덤 색상 선택 함수
+            function getRandomColor() {
+                const randomIndex = Math.floor(Math.random() * postItColors.length);
+                return postItColors[randomIndex];
+            }
+
+            // 포스트잇 클릭 여부
+            let postItClicked = false;
+
+            // 저장 버튼 클릭
+            $('#save-btn').click(function () {
+                // 저장 기능 실행 시 텍스트박스의 텍스트를 lastCopiedText와 대조하여 내용이 다른 경우에 한해서 남은 자동 복사 타이머를 전부 스킵하고 즉시 복사 기능 실행
+                const text = $('#text-input').val();
+                if (text && text !== lastCopiedText) {
+                    clearTimeout(typingTimer); // 남은 자동 복사 타이머 전부 스킵
+                    copyToClipboard(text); // 즉시 복사 기능 실행
+                }
+
+                // 포스트잇 생성
+                if (text) {
+                    let postItColor = getRandomColor(); // 랜덤 색상 선택
+                    let postIt;
+
+                    const isHtmlContent = $('#toggle-limit').is(':checked') && text.startsWith('/html/');
+                    let displayText = text;
+
+                    if (isHtmlContent) {
+                        const htmlContent = text.replace('/html/', '').replace(/^\s*\n/, '').replace(/(?:\r\n|\r|\n)/g, '<br>');
+                        postIt = $('<div class="post-it"></div>').html(htmlContent);
+                    } else {
+                        const escapedText = $('<div>').text(text).html();
+                        postIt = $('<div class="post-it"></div>').html(escapedText.replace(/\r?\n/g, '<br>'));
+                    }
+
+                    postIt.css('background-color', postItColor);
+
+                    // 포스트잇 저장 데이터
+                    const postItData = {
+                        id: Date.now(), // 고유 ID
+                        text: isHtmlContent ? text : text,
+                        color: postItColor,
+                        htmlContent: isHtmlContent // 언리미티드 모드 && /html/ 로 시작하는가
+                    };
+
+                    let savedPostIts = localStorage.getItem('postIts');
+                    savedPostIts = savedPostIts ? JSON.parse(savedPostIts) : [];
+                    savedPostIts.push(postItData);
+                    localStorage.setItem('postIts', JSON.stringify(savedPostIts));
+
+                    postIt.data('id', postItData.id);
+                    postIt.data('htmlContent', postItData.htmlContent);
+                    postIt.data('originalText', postItData.text);
+
+                    const closeButton = $('<span class="close">&times;</span>');
+                    closeButton.click(function (event) {
+                        event.stopPropagation();
+                        const postItId = $(this).parent().data('id');
+                        $(this).parent().remove();
+
+                        let savedPostIts = localStorage.getItem('postIts');
+                        if (savedPostIts) {
+                            savedPostIts = JSON.parse(savedPostIts);
+                            savedPostIts = savedPostIts.filter(postIt => postIt.id !== postItId);
+                            localStorage.setItem('postIts', JSON.stringify(savedPostIts));
+                        }
+                        if (isPC) {
+                            $('#text-input').focus(); // PC 환경일 때 포커스 유지
+                        }
+                    });
+
+                    postIt.append(closeButton);
+                    postIt.click(function () {
+                        postItClicked = true;
+                        const isHtmlContent = $(this).data('htmlContent');
+                        if (isHtmlContent) {
+                            copyToClipboard($(this).data('originalText'));
+                        } else {
+                            copyToClipboard($(this).clone().children().remove().end().text());
+                        }
+                        if (isPC) {
+                            $('#text-input').focus(); // PC 환경일 때 포커스 유지
+                        }
+                    });
+
+                    $('#post-it-container').prepend(postIt);
+                    $('#text-input').val('');
+                    $('#byte-counter').text('0/144');
+                    $('#text-input')[0].style.height = 'auto';
+                    if (isPC) {
+                        $('#text-input').focus(); // PC 환경일 때 포커스 유지
+                    }
+                }
+                if (isPC) {
+                    $('#text-input').focus(); // PC 환경일 때 포커스 유지
+                }
+            });
+
+            // 전체 삭제 버튼 클릭
+            $('#delete-all-btn').click(function () {
+                // 삭제 확인 팝업
+                Swal.fire({
+                    title: '本当に削除しますか？',
+                    text: "この操作は取り消せません。",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: '削除',
+                    cancelButtonText: 'キャンセル'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // 포스트잇 전체 삭제
+                        $('#post-it-container').empty();
+
+                        // 비우기 버튼을 눌렀을 때와 동일한 기능도 실행
+                        $('#text-input').val('');
+                        const text = $('#text-input').val();
+                        const byteCount = new Blob([text]).size;
+                        lastCopiedText = '';
+                        $('#text-input')[0].style.height = 'auto';
+                        $('#byte-counter').text(byteCount + '/144');
+
+                        // 로컬 스토리지에서 포스트잇 데이터 삭제
+                        localStorage.removeItem('postIts');
+
+                        Swal.fire(
+                            '削除されました。',
+                            '全てのポストイットが削除されました。',
+                            'success'
+                        );
+                    }
+                });
+            });
+
+        });
+
+        // 텍스트박스의 포커스 유지
+        $('#text-input').blur(function () {
+            // 유저에이전트를 이용하여 모바일 환경인지 판단
+            const isMobile = /iPhone/i.test(navigator.userAgent);
+
+            if (!isMobile) { // 아이폰이 아닌 경우에만 포커스 유지
+                setTimeout(function () {
+                    if (!$('#text-input').is(':focus')) {
+                        $('#text-input').focus();
+                    }
+                }, 100);
+            }
+        });
+
+        // 포스트잇과 푸터가 겹치면 푸터를 페이드아웃
+        document.addEventListener('DOMContentLoaded', function () {
+            const footer = document.querySelector('footer');
+            const postItContainer = document.querySelector('#post-it-container');
+
+            function checkOverlap() {
+                const footerRect = footer.getBoundingClientRect();
+                const postIts = document.querySelectorAll('.post-it');
+                const textBox = document.querySelector('#text-input').getBoundingClientRect();
+                const buttons = document.querySelectorAll('.btn');
+
+                // 포스트잇과 푸터가 겹치는지 확인
+                let shouldFadeOut = false;
+                postIts.forEach(postIt => {
+                    const postItRect = postIt.getBoundingClientRect();
+                    if (postItRect.bottom > footerRect.top) {
+                        shouldFadeOut = true;
+                    }
+                });
+
+                // 텍스트박스와 푸터가 겹치는지 확인
+                if (textBox.bottom > footerRect.top) {
+                    shouldFadeOut = true;
+                }
+
+                // 버튼들과 푸터가 겹치는지 확인
+                buttons.forEach(button => {
+                    const buttonRect = button.getBoundingClientRect();
+                    if (buttonRect.bottom > footerRect.top) {
+                        shouldFadeOut = true;
+                    }
+                });
+
+                // 푸터 페이드아웃 처리
+                if (shouldFadeOut) {
+                    footer.classList.add('fade-out');
+                } else {
+                    footer.classList.remove('fade-out');
+                }
+            }
+
+            const observer = new MutationObserver(checkOverlap);
+            observer.observe(postItContainer, { childList: true });
+
+            window.addEventListener('scroll', checkOverlap);
+            window.addEventListener('resize', checkOverlap);
+
+            checkOverlap();
+        });
+    </script>
+</body>
+
+</html>
