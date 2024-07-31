@@ -98,6 +98,68 @@
             height: auto;
             resize: none;
             overflow-y: hidden;
+            border: 2px solid skyblue;
+            transition: border-color 0.3s;
+        }
+
+        #text-input.composing {
+            border-color: orange;
+        }
+
+        #text-input.empty {
+            border-color: skyblue;
+        }
+
+        #text-input.pasted {
+            border-color: red;
+        }
+
+        #text-input.duplicate {
+            border-color: red;
+        }
+
+        #text-input.copied {
+            border-color: limegreen;
+        }
+
+        #text-input.rainbow {
+            border: 2px solid;
+            border-image: linear-gradient(to right, red, orange, yellow, green, blue, indigo, violet) 1;
+            animation: rainbow-border 5s linear infinite;
+        }
+
+        @keyframes rainbow-border {
+            0% {
+                border-image-source: linear-gradient(to right, red, orange, yellow, green, blue, indigo, violet);
+            }
+
+            14.29% {
+                border-image-source: linear-gradient(to right, orange, yellow, green, blue, indigo, violet, red);
+            }
+
+            28.57% {
+                border-image-source: linear-gradient(to right, yellow, green, blue, indigo, violet, red, orange);
+            }
+
+            42.86% {
+                border-image-source: linear-gradient(to right, green, blue, indigo, violet, red, orange, yellow);
+            }
+
+            57.14% {
+                border-image-source: linear-gradient(to right, blue, indigo, violet, red, orange, yellow, green);
+            }
+
+            71.43% {
+                border-image-source: linear-gradient(to right, indigo, violet, red, orange, yellow, green, blue);
+            }
+
+            85.71% {
+                border-image-source: linear-gradient(to right, violet, red, orange, yellow, green, blue, indigo);
+            }
+
+            100% {
+                border-image-source: linear-gradient(to right, red, orange, yellow, green, blue, indigo, violet);
+            }
         }
 
         .text-center {
@@ -334,6 +396,13 @@
                 const $textInput = $('#text-input');
                 let text = $textInput.val();
 
+                // 자동 복사 모드 비활성화 및 rainbow 클래스 적용
+                clearTimeout(typingTimer); // 기존 타이머 취소
+                lastCopiedText = ''; // 마지막으로 복사된 텍스트 초기화
+                pastedbyUser = false; // 붙여넣기 여부 초기화
+                if (text.startsWith('/html/')) {
+                    $textInput.addClass('rainbow'); // rainbow 클래스 적용
+                }
                 if (isChecked) {
                     $('#byte-counter').hide();
                     text = text.replace(/[\r\n]/g, ''); // 개행 제거
@@ -348,14 +417,22 @@
                     const charLength = text.length;
                     $('#byte-counter').text(`${charLength}/144`);
 
-                    // 추가 부분: 토글 스위치가 OFF일 때 텍스트박스 높이 다시 조정
+                    // 토글 스위치가 OFF일 때 텍스트박스 높이 다시 조정
                     $textInput[0].style.height = 'auto';
                     if ($textInput[0].scrollHeight > $textInput[0].clientHeight) {
                         $textInput[0].style.height = $textInput[0].scrollHeight + 'px';
                     }
+
+                    // 자동 복사 모드 활성화 및 rainbow 클래스 제거
+                    clearTimeout(typingTimer); // 기존 타이머 취소
+                    lastCopiedText = ''; // 마지막으로 복사된 텍스트 초기화
+                    pastedbyUser = false; // 붙여넣기 여부 초기화
+                    $textInput.removeClass('rainbow'); // rainbow 클래스 제거
                 }
 
-                $textInput.trigger('input');
+                // 자동 복사 방지
+                lastCopiedText = ''; // 마지막으로 복사된 텍스트 초기화
+                pastedbyUser = false; // 붙여넣기 여부 초기화
             });
 
             // 창 크기가 변경될 때 텍스트박스 높이 재조정
@@ -375,6 +452,11 @@
             // 붙여넣기 이벤트 핸들러
             $('#text-input').on('paste', function (event) {
                 pastedbyUser = true;
+
+                // 자동복사 기능 타이머 중도 취소
+                clearTimeout(typingTimer);
+                lastCopiedText = ''; // 마지막으로 복사된 텍스트 초기화
+
                 const textInput = $(this);
                 const clipboardData = event.originalEvent.clipboardData || window.clipboardData;
                 let pastedData = clipboardData.getData('Text');
@@ -415,6 +497,7 @@
             const defaultTypingInterval = isMobile ? 2500 : 500; // 기본 타이머 시간(ms)
 
             let isComposing = false;
+            let htmlMode = false;
 
             // 붙여넣기 여부를 추적하기 위한 변수 추가
             let pastedbyUser = false;
@@ -425,7 +508,29 @@
 
                 const $textInput = $(this);
                 let text = $textInput.val();
-                text = text.replace(/[\r\n]/g, ''); // 개행 제거
+                text = text.replace(/[\r\n]/g, ''); // 개행 제거                
+
+                $textInput.removeClass('empty pasted duplicate copied'); // 텍스트박스 스타일 초기화 지정
+                if (!isComposing) $textInput.removeClass('composing'); // 사용자가 직접 입력을 마쳤을 때만 클래스를 제거
+
+                if (isComposing) {
+                    $textInput.addClass('composing');
+                } else if (text === '') {
+                    $textInput.addClass('empty');
+                } else if (pastedbyUser) {
+                    $textInput.addClass('pasted');
+                } else if (text === lastCopiedText) {
+                    $textInput.addClass('duplicate');
+                } else {
+                }
+
+                // 현재 textInput 스타일 상태 저장
+                $textInput.data('prevState', $textInput.attr('class'));
+
+                // 텍스트가 입력됨 or 자동복사 타이머가 실행 중인 or 및 일본어 입력 중인 경우 황색 테두리
+                if (text || typingTimer || isComposing) {
+                    $textInput.addClass('composing');
+                }
 
                 if (!$('#toggle-limit').is(':checked') && text.length > 144) { // 144글자 초과하면 제거
                     text = text.substring(0, 144);
@@ -463,6 +568,8 @@
             // 일본어 입력 조합 상태 추적
             $('#text-input').on('compositionstart', function () {
                 isComposing = true;
+                $(this).addClass('composing');
+                $(this).removeClass('empty pasted duplicate copied'); // 다른 클래스 제거
             });
 
             $('#text-input').on('compositionend', function () {
@@ -479,6 +586,13 @@
                 }
             });
 
+            // ESC 키 입력으로 클리어 버튼 클릭 이벤트 트리거
+            $(document).keydown(function (event) {
+                if (event.key === 'Escape' && !isComposing) {
+                    $('#delete-btn').click();
+                }
+            });
+
             // 복사 기능
             let lastCopiedText = ''; // 마지막으로 복사한 텍스트를 저장할 변수
 
@@ -492,6 +606,23 @@
                     showToast("テキストがコピーされました");
                     lastCopiedText = text; // 마지막으로 복사한 텍스트 업데이트
                     postItClicked = false; // 클릭 플래그 초기화
+                    const $textInput = $('#text-input');
+                    $textInput.addClass('copied');
+
+                    // 토스트가 닫힐 때 클래스를 이전 상태로 복원
+                    $('#toast-container .toast').on('hidden.bs.toast', function () {
+                        const $textInput = $('#text-input');
+                        const isAutoSaveDisabled = $textInput.hasClass('pasted') || $textInput.hasClass('duplicate');
+                        if (isAutoSaveDisabled) {
+                            $textInput.removeClass('empty pasted duplicate copied').addClass('duplicate'); //테두리 색상 붉은색
+                        }
+                        else if ($textInput.hasClass('composing')) {
+                            $textInput.removeClass('empty pasted duplicate copied').addClass('composing'); //테두리 색상 주황색
+                        }
+                        else {
+                            $textInput.removeClass('empty pasted duplicate copied').addClass('empty'); //테두리 색상 하늘색
+                        }
+                    });
                 }
             }
 
@@ -506,16 +637,41 @@
                 const $toast = $(toastHTML);
                 $('#toast-container').append($toast);
 
-                // 토스트가 보일 때 푸터 숨기기
+                // 토스트가 보일 때
                 $toast.on('shown.bs.toast', function () {
+                    //푸터 숨기기
                     $('footer').addClass('fade-out');
+
+                    // 자동 저장 기능이 비활성화되는 조건인지 판별
+                    const $textInput = $('#text-input');
+                    const isAutoSaveDisabled = $textInput.hasClass('pasted') || $textInput.hasClass('duplicate');
+                    if (isAutoSaveDisabled) {
+                        $textInput.removeClass('empty pasted duplicate copied').addClass('duplicate'); //테두리 색상 붉은색
+                    } else {
+                        $textInput.removeClass('empty pasted duplicate copied').addClass('copied'); //테두리 색상 초록색
+                    }
                 });
 
-                // 토스트가 숨겨질 때 푸터 다시 보이기
+                // 토스트가 숨겨질 때
                 $toast.on('hidden.bs.toast', function () {
                     $(this).remove();
+
+                    //푸터 숨기기 해제
                     if ($('#toast-container .toast').length === 0) {
                         $('footer').removeClass('fade-out');
+                    }
+
+                    // 자동 저장 기능이 비활성화되는 조건인지 판별
+                    const $textInput = $('#text-input');
+                    const isAutoSaveDisabled = $textInput.hasClass('pasted') || $textInput.hasClass('duplicate');
+                    if (isAutoSaveDisabled) {
+                        $textInput.removeClass('empty pasted duplicate copied').addClass('duplicate'); //테두리 색상 붉은색
+                    }
+                    else if ($textInput.hasClass('composing')) {
+                        $textInput.removeClass('empty pasted duplicate copied').addClass('composing'); //테두리 색상 주황색
+                    }
+                    else {
+                        $textInput.removeClass('empty pasted duplicate copied').addClass('empty'); //테두리 색상 하늘색
                     }
                 });
 
@@ -530,16 +686,25 @@
                 lastCopiedText = '';
                 let pastedbyUser = false;
 
+                // 현재 상태 저장
+                const $textInput = $('#text-input');
+                const prevState = $textInput.attr('class');
+
                 // 텍스트박스 비우기
-                $('#text-input').val('');
-                const text = $('#text-input').val();
+                $textInput.val('');
+                const text = $textInput.val();
                 const byteCount = new Blob([text]).size;
                 lastCopiedText = '';
-                $('#text-input')[0].style.height = 'auto';
+                $textInput[0].style.height = 'auto';
+                $textInput.removeClass('composing pasted duplicate copied');
+                $textInput.addClass('empty'); // 기본 상태
                 $('#byte-counter').text(byteCount + '/144');
                 if (isPC) {
-                    $('#text-input').focus(); // PC 환경일 때 포커스 유지
+                    $textInput.focus(); // PC 환경일 때 포커스 유지
                 }
+
+                // 이전 상태 복원
+                $textInput.removeClass('empty pasted duplicate copied rainbow'); // 텍스트박스 스타일 초기화 지정
             });
 
             // 포스트잇 색상 목록
@@ -561,6 +726,9 @@
 
             // 저장 버튼 클릭
             $('#save-btn').click(function () {
+                const $textInput = $('#text-input');
+                const prevState = $textInput.attr('class'); // 현재 상태 저장
+
                 // 저장 기능 실행 시 텍스트박스의 텍스트를 lastCopiedText와 대조하여 내용이 다른 경우에 한해서 남은 자동 복사 타이머를 전부 스킵하고 즉시 복사 기능 실행
                 const text = $('#text-input').val();
                 if (text && text !== lastCopiedText) {
@@ -620,6 +788,7 @@
                         }
                     });
 
+
                     postIt.append(closeButton);
                     postIt.click(function () {
                         postItClicked = true;
@@ -636,15 +805,28 @@
 
                     $('#post-it-container').prepend(postIt);
                     $('#text-input').val('');
+                    $textInput.removeClass('composing pasted duplicate copied rainbow');
+                    $textInput.addClass('copied');
                     $('#byte-counter').text('0/144');
                     $('#text-input')[0].style.height = 'auto';
+
                     if (isPC) {
                         $('#text-input').focus(); // PC 환경일 때 포커스 유지
+                    }
+                    $textInput.data('prevState', prevState);
+
+                    // 저장 후 테두리 색상 판별 추가
+                    const isAutoSaveDisabled = $textInput.hasClass('pasted') || $textInput.hasClass('duplicate');
+                    if (isAutoSaveDisabled) {
+                        $textInput.removeClass('empty pasted duplicate copied rainbow').addClass('duplicate'); //테두리 색상 붉은색
+                    } else {
+                        $textInput.removeClass('empty pasted duplicate copied rainbow').addClass('empty'); //테두리 색상 하늘색
                     }
                 }
                 if (isPC) {
                     $('#text-input').focus(); // PC 환경일 때 포커스 유지
                 }
+                $textInput.data('prevState', prevState);
             });
 
             // 전체 삭제 버튼 클릭
@@ -661,6 +843,9 @@
                     cancelButtonText: 'キャンセル'
                 }).then((result) => {
                     if (result.isConfirmed) {
+                        const $textInput = $('#text-input');
+                        const prevState = $textInput.attr('class'); // 현재 상태 저장
+
                         // 포스트잇 전체 삭제
                         $('#post-it-container').empty();
 
@@ -674,6 +859,11 @@
 
                         // 로컬 스토리지에서 포스트잇 데이터 삭제
                         localStorage.removeItem('postIts');
+
+                        // 이전 상태 복원
+                        $textInput.attr('class', $textInput.data('prevState'));
+                        $textInput.removeClass('composing pasted duplicate copied rainbow'); // 클래스 제거
+                        $textInput.addClass('empty');
 
                         Swal.fire(
                             '削除されました。',
