@@ -449,6 +449,7 @@
                 return new Blob([str]).size;
             }
 
+
             // 붙여넣기 이벤트 핸들러
             $('#text-input').on('paste', function (event) {
                 pastedbyUser = true;
@@ -485,7 +486,14 @@
                 // 붙여넣기 후 텍스트 업데이트
                 setTimeout(function () {
                     textInput.trigger('input');
-                    lastCopiedText = pastedData; // 붙여넣기된 텍스트로 업데이트
+                    lastCopiedText = pastedData;
+
+                    // /html/로 시작하면 CSS 클래스 제거
+                    if (pastedData.startsWith('/html/')) {
+                        textInput.removeClass('pasted duplicated').addClass('rainbow');
+                    } else {
+                        textInput.addClass('pasted');
+                    }
                 }, 0);
 
                 // 붙여넣기 이벤트의 기본 동작 방지
@@ -508,9 +516,9 @@
 
                 const $textInput = $(this);
                 let text = $textInput.val();
-                text = text.replace(/[\r\n]/g, ''); // 개행 제거                
+                text = text.replace(/[\r\n]/g, ''); // 개행 제거
 
-                $textInput.removeClass('empty pasted duplicate copied'); // 텍스트박스 스타일 초기화 지정
+                $textInput.removeClass('empty pasted duplicate copied rainbow'); // 텍스트박스 스타일 초기화 지정
                 if (!isComposing) $textInput.removeClass('composing'); // 사용자가 직접 입력을 마쳤을 때만 클래스를 제거
 
                 if (isComposing) {
@@ -518,9 +526,13 @@
                 } else if (text === '') {
                     $textInput.addClass('empty');
                 } else if (pastedbyUser) {
-                    $textInput.addClass('pasted');
+                    if (!text.startsWith('/html/')) {
+                        $textInput.addClass('pasted');
+                    }
                 } else if (text === lastCopiedText) {
                     $textInput.addClass('duplicate');
+                } else if (text.startsWith('/html/') && $('#toggle-limit').prop('checked', true)) {
+                    $textInput.addClass('rainbow');
                 } else {
                 }
 
@@ -564,7 +576,6 @@
                 }
             });
 
-
             // 일본어 입력 조합 상태 추적
             $('#text-input').on('compositionstart', function () {
                 isComposing = true;
@@ -597,7 +608,7 @@
             let lastCopiedText = ''; // 마지막으로 복사한 텍스트를 저장할 변수
 
             function copyToClipboard(text) {
-                if (text && (text !== lastCopiedText || postItClicked)) {
+                if (text && (text !== lastCopiedText || postItClicked) && !(text.startsWith('/html/') && $('#toggle-limit').prop('checked', true))) {
                     const tempInput = $('<input>');
                     $('body').append(tempInput);
                     tempInput.val(text).select();
