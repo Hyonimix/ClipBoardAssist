@@ -280,7 +280,9 @@
     <div id="toast-container"></div>
     <footer class="container mt-4 text-muted">
         D5 Kan<br>
-        github.com/Hyonimix
+        <a class="text-muted text-decoration-none font-weight-bold" style="cursor: default;"
+			href="https://github.com/Hyonimix/ClipBoardAssist" target="_blank">
+        github.com/Hyonimix</a>
     </footer>
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
@@ -288,7 +290,7 @@
     <script>
         $(document).ready(function () {
             // 유저에이전트를 이용하여 모바일 환경인지 판단
-            const isMobile = /iPhone/i.test(navigator.userAgent);
+            const isMobile = /iPhone|Android/i.test(navigator.userAgent);
 
             // 모바일 환경이 아닌 경우 PC 환경으로 판단
             const isPC = !isMobile;
@@ -320,7 +322,20 @@
                     'CBAssist : ChiBiAssist',
                     'CBAssist : ChatBoxAssist'
                 ];
-                const randomHeader = headerOptions[Math.floor(Math.random() * headerOptions.length)];
+
+                // PC 환경 헤더 이스터에그
+                const selectHeaderWithWeight = () => {
+                    const randomNumber = Math.random();
+                    if (randomNumber < 0.98) {
+                        return 'CBAssist : ClipBoardAssist';
+                    } else if (randomNumber < 0.99) {
+                        return 'CBAssist : ChiBiAssist';
+                    } else {
+                        return 'CBAssist : ChatBoxAssist';
+                    }
+                };
+
+                const randomHeader = selectHeaderWithWeight();
 
                 $('.cbassist-header').text(randomHeader);
 
@@ -622,7 +637,7 @@
             let lastCopiedText = ''; // 마지막으로 복사한 텍스트를 저장할 변수
 
             function copyToClipboard(text) {
-                if (text && (text !== lastCopiedText || postItClicked) && !(text.startsWith('/html/') && $('#toggle-limit').prop('checked', true))) {
+                if (text && !(text.startsWith('/html/') && $('#toggle-limit').is(':checked'))) {
                     const tempInput = $('<input>');
                     $('body').append(tempInput);
                     tempInput.val(text).select();
@@ -630,7 +645,7 @@
                     tempInput.remove();
                     showToast("テキストがコピーされました");
                     lastCopiedText = text; // 마지막으로 복사한 텍스트 업데이트
-                    postItClicked = false; // 클릭 플래그 초기화
+                    postItClicked = false; // 클릭 플래그를 초기화
                     const $textInput = $('#text-input');
                     $textInput.addClass('copied');
 
