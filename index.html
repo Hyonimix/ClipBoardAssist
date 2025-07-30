@@ -637,7 +637,7 @@
             let lastCopiedText = ''; // 마지막으로 복사한 텍스트를 저장할 변수
 
             function copyToClipboard(text) {
-                if (text && !(text.startsWith('/html/') && $('#toggle-limit').is(':checked'))) {
+                if (postItClicked || (text && !(text.startsWith('/html/') && $('#toggle-limit').is(':checked')))) {
                     const tempInput = $('<input>');
                     $('body').append(tempInput);
                     tempInput.val(text).select();
@@ -645,7 +645,7 @@
                     tempInput.remove();
                     showToast("テキストがコピーされました");
                     lastCopiedText = text; // 마지막으로 복사한 텍스트 업데이트
-                    postItClicked = false; // 클릭 플래그를 초기화
+                    postItClicked = false; // 플래그를 초기화
                     const $textInput = $('#text-input');
                     $textInput.addClass('copied');
 
@@ -666,6 +666,7 @@
                 }
             }
 
+            
             // 토스트 알림
             function showToast(message) {
                 const toastHTML = `
